@@ -2,14 +2,22 @@ import { useKeyboard } from "@react-aria/interactions";
 import clsx from "clsx";
 import React, { Reducer, useReducer } from "react";
 import "./App.css";
+import words from "./words.json";
 
 interface AppState {
   readonly word: string;
-  userWord: string;
-  submitted: boolean;
   index: number;
   rows: string[];
 }
+
+const getRandomWord = () => {
+  let min = 0,
+    max = words.length - 1;
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  const index = Math.floor(Math.random() * (max - min) + min);
+  return words[index];
+};
 
 type Action =
   | { type: "LETTER"; letter: string }
@@ -35,6 +43,22 @@ const updateRow = (state: AppState, letter: string) => {
   ];
 };
 
+const handleSubmit = (state: AppState) => {
+  if (state.rows[state.index].length < state.word.length) {
+    // don't allow submit if the word isn't filled
+    return state;
+  }
+
+  if (state.index >= state.rows.length - 1) {
+    return { ...state, index: state.rows.length - 1 };
+  }
+
+  return {
+    ...state,
+    index: state.index + 1,
+  };
+};
+
 const reducer: Reducer<AppState, Action> = (state, action) => {
   switch (action.type) {
     case "LETTER":
@@ -48,27 +72,23 @@ const reducer: Reducer<AppState, Action> = (state, action) => {
         rows: updateRow(state, "-1"),
       };
     case "SUBMIT":
-      return {
-        ...state,
-        userWord: "",
-        submitted: true,
-        index: state.index + 1,
-      };
+      return handleSubmit(state);
+
     default:
       return state;
   }
 };
 
 const initialAppState: AppState = {
-  word: "BLAST",
-  userWord: "",
-  submitted: false,
+  word: getRandomWord(),
   index: 0,
   rows: ["", "", "", "", ""],
 };
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialAppState);
+
+  console.log("WORD: ", state.word);
 
   const { keyboardProps } = useKeyboard({
     onKeyDown: (e) => {
@@ -82,8 +102,6 @@ function App() {
       }
     },
   });
-
-  console.log(state.userWord);
 
   return (
     <div
